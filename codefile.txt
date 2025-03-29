@@ -1,0 +1,200 @@
+// Project Structure
+// ├── backend
+// │   ├── server.js
+// │   ├── models
+// │   │   ├── Barcode.js
+// │   ├── routes
+// │   │   ├── barcodeRoutes.js
+// │   ├── package.json
+// │   ├── Dockerfile
+// ├── frontend
+// │   ├── src
+// │   │   ├── components
+// │   │   │   ├── BarcodeScanner.js
+// │   │   ├── App.js
+// │   ├── package.json
+// │   ├── Dockerfile
+// ├── docker-compose.yml
+// ├── README.md
+
+// Commands to Run the Project
+// 1. Build and Start Containers:
+//    docker-compose up --build
+//
+// 2. Stop Containers:
+//    docker-compose down
+//
+// 3. Restart Containers:
+//    docker-compose up -d
+//
+// 4. Check Logs:
+//    docker-compose logs -f
+//
+// 5. Access MongoDB CLI inside container:
+//    docker exec -it <mongo_container_id> mongosh
+
+// backend/Dockerfile
+FROM node:16
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+EXPOSE 5000
+CMD ["node", "server.js"]
+
+// frontend/Dockerfile
+FROM node:16
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+
+// docker-compose.yml
+version: "3.8"
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/barcodes
+    depends_on:
+      - mongo
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+
+// backend/models/Barcode.js
+const mongoose = require("mongoose");
+const BarcodeSchema = new mongoose.Schema({ barcode: String });
+module.exports = mongoose.model("Barcode", BarcodeSchema);
+
+// backend/routes/barcodeRoutes.js
+const express = require("express");
+const Barcode = require("../models/Barcode");
+const router = express.Router();
+
+router.post("/barcodes", async (req, res) => {
+  try {
+    const { barcode } = req.body;
+    const newBarcode = new Barcode({ barcode });
+    await newBarcode.save();
+    res.status(201).json({ message: "Barcode saved" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to save barcode" });
+  }
+});
+
+router.get("/barcodes", async (req, res) => {
+  try {
+    const barcodes = await Barcode.find();
+    res.json(barcodes);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch barcodes" });
+  }
+});
+
+module.exports = router;
+
+// backend/server.js
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const barcodeRoutes = require("./routes/barcodeRoutes");
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+app.use("/api", barcodeRoutes);
+
+mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/barcodes", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+app.listen(5000, () => console.log("Server running on port 5000"));
+
+// frontend/src/components/BarcodeScanner.js
+import React, { useState, useEffect } from "react";
+import Quagga from "quagga";
+import axios from "axios";
+import { Card, Button, Input } from "@/components/ui";
+
+export default function BarcodeScanner() {
+  const [scannedCodes, setScannedCodes] = useState([]);
+  const [manualCode, setManualCode] = useState("");
+
+  useEffect(() => {
+    Quagga.init(
+      {
+        inputStream: {
+          type: "LiveStream",
+          constraints: { width: 640, height: 480, facingMode: "environment" },
+        },
+        decoder: { readers: ["ean_reader", "code_128_reader"] },
+      },
+      (err) => {
+        if (err) {
+          console.error("Error initializing Quagga", err);
+          return;
+        }
+        Quagga.start();
+      }
+    );
+
+    Quagga.onDetected((data) => {
+      const code = data.codeResult.code;
+      if (!scannedCodes.includes(code)) {
+        setScannedCodes([...scannedCodes, code]);
+        sendCodeToDatabase(code);
+      }
+    });
+
+    return () => Quagga.stop();
+  }, [scannedCodes]);
+
+  const sendCodeToDatabase = async (code) => {
+    try {
+      await axios.post("http://localhost:5000/api/barcodes", { barcode: code });
+    } catch (error) {
+      console.error("Error saving barcode", error);
+    }
+  };
+
+  const handleManualSubmit = () => {
+    if (manualCode.trim() !== "") {
+      setScannedCodes([...scannedCodes, manualCode]);
+      sendCodeToDatabase(manualCode);
+      setManualCode("");
+    }
+  };
+
+  return (
+    <Card className="p-4 w-full max-w-md mx-auto text-center">
+      <h2 className="text-xl font-bold mb-4">Multi Barcode Scanner</h2>
+      <div id="interactive" className="viewport mb-4"></div>
+      <Input
+        value={manualCode}
+        onChange={(e) => setManualCode(e.target.value)}
+        placeholder="Enter barcode manually"
+        className="mb-2"
+      />
+      <Button onClick={handleManualSubmit} className="mb-4">Submit</Button>
+      <h3 className="text-lg font-semibold">Scanned Codes:</h3>
+      <ul>
+        {scannedCodes.map((code, index) => (
+          <li key={index} className="text-sm">{code}</li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
