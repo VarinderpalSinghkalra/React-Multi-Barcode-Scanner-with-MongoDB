@@ -1,0 +1,85 @@
+Architecture Overview of React Multi-Barcode Scanner with MongoDB
+
+1. Overview
+
+This project consists of a React frontend, a Node.js backend, and a MongoDB database, all deployed on Google Cloud Platform (GCP) with Docker and CI/CD automation.
+
+2. System Components
+
+Frontend (React.js)
+
+Uses QuaggaJS for barcode scanning.
+
+Handles manual barcode input.
+
+Sends scanned data to the backend.
+
+Runs on port 3000.
+
+Backend (Node.js + Express.js)
+
+Provides a REST API for barcode storage and retrieval.
+
+Uses MongoDB as the database.
+
+Runs on port 5000.
+
+Uses Docker for containerization.
+
+Database (MongoDB)
+
+Stores scanned barcode data.
+
+Deployed inside a Docker container.
+
+Runs on port 27017.
+
+Deployment on GCP
+
+Hosted on a Compute Engine VM.
+
+Configured with Nginx reverse proxy.
+
+Uses Cloud Build & GitHub Actions for CI/CD.
+
+3. Architecture Diagram
+
+         User
+          │
+          ▼
+  +-----------------+
+  |   React Frontend |
+  | (Barcode Scanner)|
+  +-----------------+
+          │
+          ▼
+  +------------------+
+  | Node.js Backend  |
+  | (Express API)    |
+  +------------------+
+          │
+          ▼
+  +------------------+
+  |   MongoDB        |
+  | (Barcode Storage)|
+  +------------------+
+          │
+          ▼
+  +------------------+
+  |  GCP Deployment  |
+  | (VM + Docker)    |
+  +------------------+
+
+4. Technologies Used
+
+Frontend: React.js, QuaggaJS, Tailwind CSS
+
+Backend: Node.js, Express.js, Mongoose
+
+Database: MongoDB
+
+Deployment: GCP Compute Engine, Docker, Nginx
+
+CI/CD: GitHub Actions, Cloud Build
+
+This architecture ensures scalability, performance, and easy deployment with cloud-based infrastructure.

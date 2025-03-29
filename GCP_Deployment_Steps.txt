@@ -1,0 +1,71 @@
+Steps to Deploy React Multi-Barcode Scanner on GCP
+
+1. Set Up a GCP Project
+   - Go to https://console.cloud.google.com/
+   - Create a new project.
+   - Enable Compute Engine API, Cloud Run API, Cloud Build API, and Container Registry API.
+
+2. Install Google Cloud SDK
+   - Download and install: https://cloud.google.com/sdk/docs/install
+   - Authenticate and set project:
+     gcloud auth login
+     gcloud config set project [YOUR_PROJECT_ID]
+
+3. Set Up a Virtual Machine (Compute Engine)
+   - Create a VM:
+     gcloud compute instances create barcode-scanner-vm --machine-type=e2-medium --image-family=debian-11 --image-project=debian-cloud --tags=http-server,https-server
+   - SSH into the instance:
+     gcloud compute ssh barcode-scanner-vm
+
+4. Install Docker and Git on the VM
+   - Update system:
+     sudo apt update && sudo apt upgrade -y
+   - Install Docker:
+     sudo apt install docker.io -y
+     sudo systemctl enable --now docker
+   - Install Git:
+     sudo apt install git -y
+
+5. Clone Your GitHub Repository
+   cd ~
+   git clone https://github.com/VarinderpalSinghkalra/React-Multi-Barcode-Scanner-with-MongoDB.git
+   cd React-Multi-Barcode-Scanner-with-MongoDB
+
+6. Set Up Environment Variables
+   echo "MONGO_URI=mongodb://localhost:27017/barcodes" > backend/.env
+
+7. Deploy Using Docker
+   sudo docker-compose up --build -d
+
+8. Configure Firewall to Allow Traffic
+   - Open HTTP/HTTPS ports:
+     gcloud compute firewall-rules create allow-http --allow tcp:80,tcp:443 --target-tags http-server
+   - Get external IP:
+     gcloud compute instances list
+
+9. Set Up a Domain (Optional)
+   - Install Nginx:
+     sudo apt install nginx -y
+   - Configure reverse proxy:
+     sudo nano /etc/nginx/sites-available/default
+   - Update config:
+     server {
+         listen 80;
+         server_name yourdomain.com;
+         location / {
+             proxy_pass http://localhost:3000;
+             proxy_set_header Host $host;
+             proxy_set_header X-Real-IP $remote_addr;
+         }
+     }
+   - Restart Nginx:
+     sudo systemctl restart nginx
+
+10. Set Up Automatic Deployment (Optional)
+   - Add GitHub Actions for auto-deploy.
+   - Use Cloud Build to trigger deployment:
+     gcloud builds submit --tag gcr.io/[YOUR_PROJECT_ID]/barcode-scanner
+   - Deploy to Cloud Run (optional):
+     gcloud run deploy barcode-scanner --image gcr.io/[YOUR_PROJECT_ID]/barcode-scanner --platform managed --allow-unauthenticated
+
+Now, your React Multi-Barcode Scanner is live on GCP! 🚀
