@@ -1,0 +1,94 @@
+Architecture Overview of GitHub Copilot Deployment for AI Barcode Scanner
+
+1. Overview
+
+This document outlines the architecture for deploying the AI-integrated multi-barcode scanner using GitHub Copilot and GitHub Actions CI/CD pipeline. The deployment is automated to Google Cloud Platform (GCP) with Docker and Compute Engine.
+
+2. System Components
+
+1. Source Code Repository (GitHub)
+
+Code is stored in a GitHub repository.
+
+Includes frontend (React.js), backend (Node.js, Express.js), and AI integration (TensorFlow.js, OpenCV.js).
+
+Uses GitHub Actions for automated deployment.
+
+2. CI/CD Pipeline (GitHub Actions)
+
+Triggers on push to the main branch.
+
+Runs tests and builds the project.
+
+Uses Docker to containerize the application.
+
+Pushes the Docker image to Google Container Registry (GCR).
+
+Deploys the new version to GCP Compute Engine.
+
+3. Google Cloud Platform (GCP) Infrastructure
+
+Google Container Registry (GCR): Stores the built Docker images.
+
+GCP Compute Engine (VM Instance): Hosts and runs the containerized application.
+
+Cloud Logging & Monitoring: Ensures system health and observability.
+
+3. Deployment Workflow
+
+  Developer Pushes Code
+           │
+           ▼
++--------------------------+
+| GitHub Repository        |
+| (Source Code)           |
++--------------------------+
+           │
+           ▼
++--------------------------+
+| GitHub Actions CI/CD     |
+| (Build, Test, Deploy)    |
++--------------------------+
+           │
+           ▼
++--------------------------+
+| Docker Containerization  |
++--------------------------+
+           │
+           ▼
++--------------------------+
+| Google Container Registry|
+| (Stores Docker Images)   |
++--------------------------+
+           │
+           ▼
++--------------------------+
+| GCP Compute Engine VM    |
+| (Runs Application)       |
++--------------------------+
+
+4. Technologies Used
+
+Version Control: GitHub
+
+CI/CD Pipeline: GitHub Actions
+
+Containerization: Docker
+
+Cloud Platform: Google Cloud Platform (GCP)
+
+Container Registry: Google Container Registry (GCR)
+
+Compute Engine: GCP VM Instance
+
+Monitoring & Logging: Google Cloud Monitoring
+
+5. Benefits of this Architecture
+
+✅ Automated Deployment: No manual intervention required.
+✅ Scalability: Can easily be deployed across multiple instances.
+✅ Reliability: Ensures smooth CI/CD workflow with minimal downtime.
+✅ Security: Secure authentication using GCP IAM and GitHub Secrets.
+
+This architecture ensures seamless and efficient deployment of the AI-powered barcode scanner with high availability, scalability, and automation.
+
