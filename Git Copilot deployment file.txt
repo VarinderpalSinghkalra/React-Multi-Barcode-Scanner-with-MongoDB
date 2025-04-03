@@ -1,0 +1,47 @@
+name: GitHub Copilot Deployment
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Login to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up GCP SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Build and Push Docker Image
+        run: |
+          gcloud auth configure-docker
+          docker build -t gcr.io/$GCP_PROJECT_ID/ai-barcode-scanner:latest .
+          docker push gcr.io/$GCP_PROJECT_ID/ai-barcode-scanner:latest
+
+      - name: Deploy to GCP Compute Engine
+        run: |
+          gcloud compute instances update-container ai-barcode-instance \
+            --container-image=gcr.io/$GCP_PROJECT_ID/ai-barcode-scanner:latest
