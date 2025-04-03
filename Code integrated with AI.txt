@@ -1,0 +1,69 @@
+// AI-Integrated Multi Barcode Scanner - React + Node.js + MongoDB
+
+// Backend: server.js (Node.js + Express + TensorFlow.js)
+const express = require('express');
+const mongoose = require('mongoose');
+const multer = require('multer');
+const tf = require('@tensorflow/tfjs-node');
+const { processBarcode } = require('./utils/aiProcessor');
+
+const app = express();
+app.use(express.json());
+const upload = multer({ dest: 'uploads/' });
+
+mongoose.connect('mongodb://localhost:27017/barcodes', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+const BarcodeSchema = new mongoose.Schema({
+  code: String,
+  scannedAt: { type: Date, default: Date.now },
+});
+const Barcode = mongoose.model('Barcode', BarcodeSchema);
+
+app.post('/scan', upload.single('image'), async (req, res) => {
+  try {
+    const barcodeData = await processBarcode(req.file.path);
+    const newBarcode = new Barcode({ code: barcodeData });
+    await newBarcode.save();
+    res.json({ success: true, data: barcodeData });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.listen(5000, () => console.log('Server running on port 5000'));
+
+// Frontend: App.js (React + QuaggaJS + TensorFlow.js)
+import React, { useEffect, useRef, useState } from 'react';
+import Quagga from 'quagga';
+
+const App = () => {
+  const [barcode, setBarcode] = useState('');
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    Quagga.init({
+      inputStream: { type: 'LiveStream', target: videoRef.current },
+      decoder: { readers: ['code_128_reader', 'ean_reader'] },
+    }, (err) => {
+      if (!err) Quagga.start();
+    });
+
+    Quagga.onDetected(data => {
+      setBarcode(data.codeResult.code);
+      Quagga.stop();
+    });
+  }, []);
+
+  return (
+    <div>
+      <h1>AI Barcode Scanner</h1>
+      <video ref={videoRef} autoPlay></video>
+      <p>Scanned Code: {barcode}</p>
+    </div>
+  );
+};
+
+export default App;
